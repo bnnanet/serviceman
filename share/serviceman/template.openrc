@@ -1,0 +1,44 @@
+#!/sbin/openrc-run
+
+# Generated for serviceman. Edit as needed. Keep this line for 'serviceman list'.
+name="EX_TITLE"
+# docs: EX_URL
+description="EX_DESC"
+
+supervisor="supervise-daemon"
+output_log="/var/log/EX_NAME"
+error_log="/var/log/EX_NAME"
+
+depend() {
+    need net
+}
+
+start_pre() {
+    checkpath --directory --owner root /var/log/
+    checkpath --file --owner 'EX_USER:EX_GROUP' ${output_log} ${error_log}
+}
+
+start() {
+    ebegin "Starting ${name}"
+    supervise-daemon ${name} --start \
+        --chdir 'EX_WORKDIR' \
+        --env 'PATH=EX_PATH' \
+        --user 'EX_USER' \
+        --group 'EX_GROUP' \
+        --stdout ${output_log} \
+        --stderr ${error_log} \
+        --pidfile /run/${RC_SVCNAME}.pid \
+        --respawn-delay 5 \
+        --respawn-max 20 \
+        EX_SUPERVISE_ARGS \
+        -- \
+        EX_POSIX_ARGS
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping ${name}"
+    supervise-daemon ${name} --stop \
+        --pidfile /run/${RC_SVCNAME}.pid
+    eend $?
+}
