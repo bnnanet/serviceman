@@ -1,0 +1,9 @@
+/var/log/EX_NAME {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
