@@ -13,11 +13,8 @@ RestartSec=3
 RestartSteps=5
 RestartMaxDelaySec=300
 
-{{ if .User -}}
-# User and group the process will run as
-User={{ .User }}
-Group={{ .Group }}
-
+User=EX_USER
+Group=EX_GROUP
 
 Environment="PATH=EX_PATH"
 WorkingDirectory=EX_WORKDIR
