@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated for serviceman. Edit as needed. Keep this line for 'serviceman list'. -->
+<!-- https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>EX_RDNS</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>EX_PLIST_ARG0</string>
+	</array>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>EX_PATH</string>
+	</dict>
+
+	<key>UserName</key>
+	<string>EX_USER</string>
+	<key>GroupName</key>
+	<string>EX_GROUP</string>
+	<key>InitGroups</key>
+	<true/>
+
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<!--dict>
+		<key>Crashed</key>
+		<true/>
+		<key>NetworkState</key>
+		<true/>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict-->
+
+	<key>SoftResourceLimits</key>
+	<dict>
+		<key>NumberOfFiles</key>
+		<integer>8192</integer>
+	</dict>
+	<key>HardResourceLimits</key>
+	<dict/>
+
+	<key>WorkingDirectory</key>
+	<string>EX_WORKDIR</string>
+
+	<key>StandardOutPath</key>
+	<string>/var/log/EX_NAME.log</string>
+	<key>StandardErrorPath</key>
+	<string>/var/log/EX_NAME.log</string>
+</dict>
+</plist>
