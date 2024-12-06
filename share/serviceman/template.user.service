@@ -1,0 +1,20 @@
+# Generated for serviceman. Edit as needed. Keep this line for 'serviceman list'.
+# https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html
+
+[Unit]
+Description=EX_TITLE EX_DESC
+Documentation=EX_URL
+
+[Service]
+Restart=always
+RestartSec=3
+RestartSteps=5
+RestartMaxDelaySec=300
+
+Environment="PATH=EX_PATH"
+WorkingDirectory=EX_WORKDIR
+ExecStart=EX_EXECSTART_ARGS
+ExecReload=/bin/kill -USR1 $MAINPID
+
+[Install]
+WantedBy=default.target
