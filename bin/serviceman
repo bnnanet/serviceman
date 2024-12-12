@@ -477,6 +477,29 @@ cmd_add() { (
         done
     fi
 
+    b_posix_args=''
+    if test "${#}" -gt "0"; then
+        b_posix_args="$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}" "${@}")"
+    else
+        b_posix_args="$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}")"
+    fi
+
+    fn_print_args \
+        "${b_login_agent}" \
+        "${b_posix_args}" \
+        "${b_name}" \
+        "${b_rdns}" \
+        "${b_title}" \
+        "${b_desc}" \
+        "${b_url}" \
+        "${b_user}" \
+        "${b_group}" \
+        "${b_workdir}" \
+        "${b_path}" \
+        "${b_cap_net_bind}" \
+        "${b_dryrun}" >&2
+    sleep 0.5
+
     if command -v systemctl > /dev/null; then
         b_systemd_args=''
         if test "${#}" -gt "0"; then
@@ -526,13 +549,6 @@ cmd_add() { (
     fi
 
     if command -v rc-update > /dev/null; then
-        b_posix_args=''
-        if test "${#}" -gt "0"; then
-            b_posix_args="$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}" "${@}")"
-        else
-            b_posix_args="$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}")"
-        fi
-
         fn_openrc_add \
             "${b_login_agent}" \
             "${b_posix_args}" \
@@ -551,6 +567,55 @@ cmd_add() { (
 
     echo >&2 'could not detect systemd, openrc, or launchctl'
     return 1
+); }
+
+#shellcheck disable=SC1003,SC2016
+fn_print_args() { (
+    a_login_agent="${1}"
+    a_posix_args="${2}"
+    a_name="${3}"
+    a_rdns="${4}"
+    a_title="${5}"
+    a_desc="${6}"
+    a_url="${7}"
+    a_user="${8}"
+    a_group="${9}"
+    a_workdir="${10}"
+    a_path="${11}"
+    a_cap_net_bind="${12}"
+    a_dryrun="${13}"
+
+    echo ""
+    echo "PATH=${a_path}"
+    echo "(set with --path)"
+    echo ""
+    echo "Running 'serviceman' with the following options:"
+    echo ""
+    echo '    serviceman add \'
+    echo "        --name '${a_name}' \\"
+    if test "$(uname -s)" = 'Darwin'; then
+        echo "        --rdns '${a_rdns}' \\"
+    fi
+    echo "        --url '${a_url}' \\"
+    echo "        --title '${a_title}' \\"
+    echo "        --desc '${a_desc}' \\"
+    echo "        --user '${a_user}' \\"
+    echo "        --group '${a_group}' \\"
+    echo '        --path "$PATH" # SEE ABOVE \'
+    echo "        --workdir '${a_workdir}' \\"
+    if test "${a_cap_net_bind}" = 'n'; then
+        echo '        --no-cap-net-bind \'
+    fi
+    if test -n "${a_login_agent}"; then
+        echo '        --agent \'
+    else
+        echo '        --daemon \'
+    fi
+    if test -n "${a_dryrun}"; then
+        echo '        --dryrun \'
+    fi
+    echo '        -- \'
+    echo "        ${a_posix_args}"
 ); }
 
 fn_args_build_systemd() { (
@@ -651,6 +716,7 @@ fn_launchctl_add() { (
         sed "s;EX_PATH;${a_path};g" > "${a_name}.plist"
 
     if test -n "${a_dryrun}"; then
+        echo "" >&2
         cat "${a_name}.plist"
         return 0
     fi
@@ -673,9 +739,12 @@ fn_launchctl_add() { (
 
     echo "   ${b_sudo} launchctl unload -w '${b_launcher_path}/${a_name}.plist'" >&2
     ${b_sudo} launchctl unload -w "${b_launcher_path}/${a_name}.plist" 2> /dev/null || true
+    sleep 0.5
     echo "   ${b_sudo} launchctl load -w '${b_launcher_path}/${a_name}.plist'" >&2
     ${b_sudo} launchctl load -w "${b_launcher_path}/${a_name}.plist"
+    sleep 0.5
     #${b_sudo} launchctl bootstrap system "${b_launcher_path}/${a_name}.plist"
+    echo "done" >&2
 
     fn_launchctl_help "${a_name}" "${a_login_agent}" >&2
 ); }
@@ -792,6 +861,9 @@ fn_systemd_add() { (
     #shellcheck disable=SC2086
     ${b_sudo} systemctl${b_usertype} restart "${a_name}"
 
+    sleep 0.5
+    echo "done" >&2
+
     echo "   ${b_sudo} systemctl${b_usertype} status -l --no-pager '${a_name}'" >&2
     echo "" >&2
     #shellcheck disable=SC2086
@@ -899,6 +971,9 @@ fn_openrc_add() { (
     ${cmd_sudo} rc-service "${a_name}" restart &&
         echo "    rc-update add '${a_name}'" >&2 &&
         ${cmd_sudo} rc-update add "${a_name}"
+
+    sleep 0.5
+    echo "done" >&2
 
     fn_openrc_help "${a_name}" >&2
 ); }
