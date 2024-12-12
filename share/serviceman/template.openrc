@@ -29,7 +29,7 @@ start() {
         --stderr ${error_log} \
         --pidfile /run/${RC_SVCNAME}.pid \
         --respawn-delay 5 \
-        --respawn-max 20 \
+        --respawn-max 51840 \
         EX_SUPERVISE_ARGS \
         -- \
         EX_POSIX_ARGS
