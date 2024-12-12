@@ -759,7 +759,6 @@ fn_launchctl_help() { (
         b_sudo=''
         b_launcher_path='~''/Library/LaunchAgents'
         b_log_prefix='~'"/.local/share/${a_name}"
-        mkdir -p "${b_launcher_path}"
     fi
 
     echo ""
