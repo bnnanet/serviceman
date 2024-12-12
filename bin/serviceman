@@ -667,9 +667,9 @@ fn_launchctl_add() { (
     echo "    create ~/.local/share/${a_name}/var/log/" >&2
     ${b_sudo} mkdir -p "${b_log_prefix}/var/log/"
     ${b_sudo} chmod 0750 "${b_log_prefix}/var/log/"
-    ${b_sudo} touch "${b_log_prefix}/var/log/${a_name}"
-    ${b_sudo} chmod 0640 "${b_log_prefix}/var/log/${a_name}"
-    ${b_sudo} chown -R "${a_user}":"${a_group}" "${b_log_prefix}/var/log/${a_name}"
+    ${b_sudo} touch "${b_log_prefix}/var/log/${a_name}.log"
+    ${b_sudo} chmod 0640 "${b_log_prefix}/var/log/${a_name}.log"
+    ${b_sudo} chown -R "${a_user}":"${a_group}" "${b_log_prefix}/var/log/${a_name}.log"
 
     echo "   ${b_sudo} launchctl unload -w '${b_launcher_path}/${a_name}.plist'" >&2
     ${b_sudo} launchctl unload -w "${b_launcher_path}/${a_name}.plist" 2> /dev/null || true
@@ -706,7 +706,7 @@ fn_launchctl_help() { (
     echo "    ~/Library/LaunchAgents/"
     echo ""
     echo "How To View Logs"
-    echo "    tail -f ${b_log_prefix}/var/log/${a_name}"
+    echo "    tail -f ${b_log_prefix}/var/log/${a_name}.log"
     echo ""
 ); }
 
@@ -1670,8 +1670,8 @@ cmd_logs() { (
             echo ${cmd_sudo} "tail -f /var/log/${b_name}.log"
             ${cmd_sudo} tail -f "/var/log/${b_name}.log"
         else
-            echo "tail -f ~/.local/share/sh.brew.updater/var/log/${b_name}.log"
-            tail -f ~/.local/share/sh.brew.updater/var/log/"${b_name}.log"
+            echo "tail -f ~/.local/share/${b_name}/var/log/${b_name}.log"
+            tail -f ~/.local/share/"${b_name}/var/log/${b_name}.log"
         fi
         return 0
     fi
