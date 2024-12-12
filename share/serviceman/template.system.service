@@ -25,7 +25,7 @@ ExecReload=/bin/kill -USR1 $MAINPID
 # These are reasonable defaults for a production system.
 # Note: systemd "user units" do not support this
 LimitNOFILE=1048576
-LimitNPROC=64
+LimitNPROC=65536
 
 # Enable if desired for extra file system security
 # (ex: non-containers, multi-user systems)
