@@ -498,6 +498,7 @@ cmd_add() { (
         "${b_path}" \
         "${b_cap_net_bind}" \
         "${b_dryrun}" >&2
+    echo "" >&2
     sleep 0.5
 
     if command -v systemctl > /dev/null; then
@@ -716,13 +717,11 @@ fn_launchctl_add() { (
         sed "s;EX_PATH;${a_path};g" > "${a_name}.plist"
 
     if test -n "${a_dryrun}"; then
-        echo "" >&2
         cat "${a_name}.plist"
         return 0
     fi
 
     {
-        echo ""
         echo "Initializing launchctl service..."
         echo "    create ${b_launcher_path}/${a_name}.plist"
     } >&2
@@ -835,7 +834,6 @@ fn_systemd_add() { (
     fi
 
     {
-        echo ""
         echo "Initializing systemd service..."
         echo "    create ${b_service_path}/${a_name}.service"
     } >&2
