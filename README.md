@@ -101,11 +101,6 @@ OPTIONS
     --user <username>  defaults to 'aj'
     --workdir <dirpath>  where the command runs, defaults to current directory
 
-DEPRECATED (DO NOT USE)
-    --system  alias of --daemon, for compatibility
-    --username  alias of --user, for compatibility
-    --groupname  alias of --group, for compatibility
-
 EXAMPLES
     caddy:   serviceman add -- caddy run --envfile ./.env --config ./Caddyfile --adapter caddyfile
     node:    serviceman add --workdir . --name 'api' -- node ./server.js
