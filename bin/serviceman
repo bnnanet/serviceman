@@ -93,11 +93,6 @@ fn_add_help() { (
     echo "    --user <username>  defaults to '$(id -u -n)'"
     echo '    --workdir <dirpath>  where the command runs, defaults to current directory'
     echo ""
-    echo "DEPRECATED (DO NOT USE)"
-    echo "    --system  alias of --daemon, for compatibility"
-    echo "    --username  alias of --user, for compatibility"
-    echo "    --groupname  alias of --group, for compatibility"
-    echo ""
     echo "EXAMPLES"
     echo "    caddy:   serviceman add -- caddy run --envfile ./.env --config ./Caddyfile --adapter caddyfile"
     echo "    node:    serviceman add --workdir . --name 'api' -- node ./server.js"
@@ -175,63 +170,6 @@ cmd_add() { (
                 b_opt_arg="$(printf '%s' "${b_arg}" | cut -d= -f2-)"
                 b_arg="$(printf '%s' "${b_arg}" | cut -d= -f1)"
                 ;;
-        esac
-
-        # transitional
-        case "${b_arg}" in
-            -help)
-                echo "warn: -help should be --help"
-                b_arg='--help'
-                ;;
-            -cap-net-bind | --cap-net-bind)
-                echo "warn: --cap-net-bind is now the default, use --no-cap-net-bind to disable"
-                b_arg='--no-cap-net-bind'
-                ;;
-            -dryrun)
-                echo "warn: -dryrun should be --dryrun"
-                b_arg='--dryrun'
-                ;;
-            -force)
-                echo "warn: -force should be --force"
-                b_arg='--force'
-                ;;
-            -system | --system)
-                echo "warn: --system is now --daemon"
-                b_arg='--daemon'
-                ;;
-            -name)
-                echo "warn: -name should be --name"
-                b_arg='--name'
-                ;;
-            -desc)
-                echo "warn: -desc should be --desc"
-                b_arg='--desc'
-                ;;
-            -groupname | --groupname)
-                echo "warn: --groupname should be --group"
-                b_arg='--group'
-                ;;
-            -rdns)
-                echo "warn: -rdns should be --rdns"
-                b_arg='--rdns'
-                ;;
-            -title)
-                echo "warn: -title should be --title"
-                b_arg='--title'
-                ;;
-            -url)
-                echo "warn: -url should be --url"
-                b_arg='--url'
-                ;;
-            -user | -username | --username)
-                echo "warn: --username should be --user"
-                b_arg='--user'
-                ;;
-            -workdir)
-                echo "warn: -workdir should be --workdir"
-                b_arg='--workdir'
-                ;;
-            *) ;;
         esac
 
         case "${b_arg}" in
