@@ -246,7 +246,7 @@ cmd_add() { (
             --daemon)
                 b_boot_daemon_set='y'
                 if test -n "${b_login_agent_set}"; then
-                    echo >&2 "--daemon and --agent are mutually exclusive"
+                    echo >&2 "error: --daemon and --agent are mutually exclusive"
                     return 1
                 fi
                 b_boot_daemon='y'
@@ -255,7 +255,7 @@ cmd_add() { (
             --agent)
                 b_login_agent_set='y'
                 if test -n "${b_boot_daemon_set}"; then
-                    echo >&2 "--daemon and --agent are mutually exclusive"
+                    echo >&2 "error: --daemon and --agent are mutually exclusive"
                     return 1
                 fi
                 b_boot_daemon=''
@@ -295,7 +295,7 @@ cmd_add() { (
                 ;;
             --rdns)
                 if ! command -v launchctl > /dev/null; then
-                    echo >&2 "--rdns is only valid for launchctl (macOS)"
+                    echo >&2 "error: --rdns is only valid for launchctl (macOS)"
                     return 1
                 fi
                 if test -n "${b_has_arg}"; then
@@ -353,7 +353,7 @@ cmd_add() { (
 
     if test -z "${b_exec}"; then
         if test -z "${1:-}"; then
-            echo 'you must give at least the command to run' >&2
+            echo 'error: you must give at least the command to run' >&2
             return 1
         fi
         b_exec="${1}"
@@ -406,7 +406,7 @@ cmd_add() { (
     #b_cmdpath="$(realpath "${b_cmdpath}" 2> /dev/null || true)"
     if test -z "${b_cmdpath}"; then
         if test -z "${b_force}"; then
-            echo >&2 "'${b_exec}' not found (use --force to ignore)"
+            echo >&2 "error: '${b_exec}' not found (use --force to ignore)"
             return 1
         fi
         b_cmdpath="${b_exec}"
@@ -418,7 +418,7 @@ cmd_add() { (
             #b_interpreter="$(realpath "${b_interpreter}" 2> /dev/null || true)"
             if test -z "${b_interpreter}"; then
                 if test -z "${b_force}"; then
-                    echo >&2 "'${b_interp}' not found (use --force to ignore)"
+                    echo >&2 "error: '${b_interp}' not found (use --force to ignore)"
                     return 1
                 fi
                 b_interpreter="${b_interp}"
@@ -566,7 +566,7 @@ cmd_add() { (
         return
     fi
 
-    echo >&2 'could not detect systemd, openrc, or launchctl'
+    echo >&2 'error: could not detect systemd, openrc, or launchctl'
     return 1
 ); }
 
@@ -918,7 +918,7 @@ fn_openrc_add() { (
     a_dryrun="${12}"
 
     if test -n "${a_login_agent}"; then
-        echo >&2 "'--agent' has no meaning for OpenRC - it doesn't support user launchers"
+        echo >&2 "error: '--agent' has no meaning for OpenRC - it doesn't support user launchers"
         return 1
     fi
 
@@ -1080,12 +1080,12 @@ cmd_list() { (
         b_path="/etc/systemd/system"
         if test -n "${b_login_agent}"; then
             b_path=''
-            echo >&2 "'--agent' has no meaning for OpenRC - it doesn't support user launchers"
+            echo >&2 "error: '--agent' has no meaning for OpenRC - it doesn't support user launchers"
             return 1
         fi
     fi
     if test -z "${b_path}"; then
-        echo >&2 'could not detect systemd, openrc, or launchctl'
+        echo >&2 'error: could not detect systemd, openrc, or launchctl'
         return 1
     fi
 
@@ -1191,7 +1191,7 @@ cmd_start() { (
         esac
     done
     if test -z "${b_name}"; then
-        echo >&2 "missing command name"
+        echo >&2 'error: missing command name'
         return 1
     fi
 
@@ -1222,13 +1222,13 @@ cmd_start() { (
             echo ${cmd_sudo} rc-service "${b_name}" start
             ${cmd_sudo} rc-service "${b_name}" start
         else
-            echo >&2 "'--agent' is not supported for openrc"
+            echo >&2 "error: '--agent' is not supported for openrc"
             return 1
         fi
         return 0
     fi
 
-    echo >&2 'could not detect systemd, openrc, or launchctl'
+    echo >&2 'error: could not detect systemd, openrc, or launchctl'
     return 1
 ); }
 
@@ -1294,7 +1294,7 @@ cmd_stop() { (
         esac
     done
     if test -z "${b_name}"; then
-        echo >&2 "missing command name"
+        echo >&2 "error: missing command name"
         return 1
     fi
 
@@ -1325,13 +1325,13 @@ cmd_stop() { (
             echo ${cmd_sudo} rc-service "${b_name}" stop
             ${cmd_sudo} rc-service "${b_name}" stop
         else
-            echo >&2 "'--agent' is not supported for openrc"
+            echo >&2 "error: '--agent' is not supported for openrc"
             return 1
         fi
         return 0
     fi
 
-    echo >&2 'could not detect systemd, openrc, or launchctl'
+    echo >&2 'error: could not detect systemd, openrc, or launchctl'
     return 1
 ); }
 
@@ -1397,7 +1397,7 @@ cmd_restart() { (
         esac
     done
     if test -z "${b_name}"; then
-        echo >&2 "missing command name"
+        echo >&2 "error: missing command name"
         return 1
     fi
 
@@ -1432,13 +1432,13 @@ cmd_restart() { (
             echo ${cmd_sudo} rc-service "${b_name}" restart
             ${cmd_sudo} rc-service "${b_name}" restart
         else
-            echo >&2 "'--agent' is not supported for openrc"
+            echo >&2 "error: '--agent' is not supported for openrc"
             return 1
         fi
         return 0
     fi
 
-    echo >&2 'could not detect systemd, openrc, or launchctl'
+    echo >&2 'error: could not detect systemd, openrc, or launchctl'
     return 1
 ); }
 
@@ -1504,7 +1504,7 @@ cmd_enable() { (
         esac
     done
     if test -z "${b_name}"; then
-        echo >&2 "missing command name"
+        echo >&2 "error: missing command name"
         return 1
     fi
 
@@ -1541,13 +1541,13 @@ cmd_enable() { (
             echo ${cmd_sudo} rc-service "${b_name}" start
             ${cmd_sudo} rc-service "${b_name}" start
         else
-            echo >&2 "'--agent' is not supported for openrc"
+            echo >&2 "error: '--agent' is not supported for openrc"
             return 1
         fi
         return 0
     fi
 
-    echo >&2 'could not detect systemd, openrc, or launchctl'
+    echo >&2 'error: could not detect systemd, openrc, or launchctl'
     return 1
 ); }
 
@@ -1613,7 +1613,7 @@ cmd_disable() { (
         esac
     done
     if test -z "${b_name}"; then
-        echo >&2 "missing command name"
+        echo >&2 "error: missing command name"
         return 1
     fi
 
@@ -1650,13 +1650,13 @@ cmd_disable() { (
             echo ${cmd_sudo} rc-update del "${b_name}"
             ${cmd_sudo} rc-update del "${b_name}"
         else
-            echo >&2 "'--agent' is not supported for openrc"
+            echo >&2 "error: '--agent' is not supported for openrc"
             return 1
         fi
         return 0
     fi
 
-    echo >&2 'could not detect systemd, openrc, or launchctl'
+    echo >&2 'error: could not detect systemd, openrc, or launchctl'
     return 1
 ); }
 
@@ -1722,7 +1722,7 @@ cmd_logs() { (
         esac
     done
     if test -z "${b_name}"; then
-        echo >&2 "missing command name"
+        echo >&2 "error: missing command name"
         return 1
     fi
 
@@ -1753,13 +1753,13 @@ cmd_logs() { (
             echo ${cmd_sudo} "tail -f /var/log/${b_name}.log"
             ${cmd_sudo} tail -f "/var/log/${b_name}.log"
         else
-            echo >&2 "'--agent' is not supported for openrc"
+            echo >&2 "error: '--agent' is not supported for openrc"
             return 1
         fi
         return 0
     fi
 
-    echo >&2 'could not detect systemd, openrc, or launchctl'
+    echo >&2 'error: could not detect systemd, openrc, or launchctl'
     return 1
 ); }
 
