@@ -1,4 +1,5 @@
 #!/bin/sh
+#shellcheck disable=SC1090
 set -e
 set -u
 
@@ -11,6 +12,11 @@ g_scriptdir="$(dirname "${0}")"
 cmd_sudo=""
 if command -v sudo > /dev/null; then
     cmd_sudo='sudo'
+fi
+
+if test -f ~/.config/serviceman/config.env; then
+    echo "Loading ~/.config/serviceman/config.env..." >&2
+    . ~/.config/serviceman/config.env
 fi
 
 fn_version() { (
@@ -72,6 +78,7 @@ fn_add_help() { (
     echo "    --dryrun  output service file without modifying disk"
     echo "    --force  install even if command or directory does not exist"
     echo "    --daemon (Linux, BSD default)  sudo, install system boot service"
+    echo "      --ignore-logind-ipc (systemd only)  do not set logind.conf RemoveIPC=no"
     echo "    --agent (macOS default)  no sudo, install user login service"
     echo "    --  stop reading flags (to prevent conflict with command)"
     echo ""
@@ -150,6 +157,7 @@ cmd_add() { (
     else
         b_boot_daemon='y'
     fi
+    b_ignore_logind_ipc=''
 
     while test "${#}" -ge 1; do
         b_arg="${1:-}"
@@ -251,6 +259,15 @@ cmd_add() { (
                 fi
                 b_boot_daemon='y'
                 b_login_agent=''
+                ;;
+            --ignore-logind-ipc)
+                # not in alphabetical order because this directly and only
+                # relates to --daemon
+                if ! command -v systemctl > /dev/null; then
+                    echo >&2 "warn: '--ignore-logind-ipc' only applies to systemd service units"
+                else
+                    b_ignore_logind_ipc='y'
+                fi
                 ;;
             --agent)
                 b_login_agent_set='y'
@@ -497,11 +514,18 @@ cmd_add() { (
         "${b_workdir}" \
         "${b_path}" \
         "${b_cap_net_bind}" \
-        "${b_dryrun}" >&2
+        "${b_dryrun}" \
+        "${b_ignore_logind_ipc}" >&2
     echo "" >&2
     sleep 0.5
 
     if command -v systemctl > /dev/null; then
+        fn_systemd_logind_set_ipc \
+            "${b_boot_daemon}" \
+            "${b_user}" \
+            "${b_ignore_logind_ipc}"
+        echo "" >&2
+
         b_systemd_args=''
         if test "${#}" -gt "0"; then
             b_systemd_args="$(fn_args_build_systemd "${b_interpreter}" "${b_cmdpath}" "${@}")"
@@ -585,11 +609,15 @@ fn_print_args() { (
     a_path="${11}"
     a_cap_net_bind="${12}"
     a_dryrun="${13}"
+    a_ignore_logind_ipc="${14}"
 
     echo ""
     echo "Running 'serviceman' with the following options:"
+    echo "(may include ENVs from ~/.config/serviceman/config.env)"
     echo ""
     echo "PATH=${a_path}"
+    echo ""
+    echo "SERVICEMAN_IGNORE_LOGIND_IPC=${SERVICEMAN_IGNORE_LOGIND_IPC:-}"
     echo ""
     echo '    serviceman add \'
     echo "        --name '${a_name}' \\"
@@ -609,7 +637,11 @@ fn_print_args() { (
     if test -n "${a_login_agent}"; then
         echo '        --agent \'
     else
-        echo '        --daemon \'
+        if test -n "${a_ignore_logind_ipc}" || test -n "${SERVICEMAN_IGNORE_LOGIND_IPC:-}"; then
+            echo '        --daemon --ignore-logind-ipc \'
+        else
+            echo '        --daemon \'
+        fi
     fi
     if test -n "${a_dryrun}"; then
         echo '        --dryrun \'
@@ -774,6 +806,59 @@ fn_launchctl_help() { (
     echo "How To View Logs"
     echo "    tail -f ${b_log_prefix}/var/log/${a_name}.log"
     echo ""
+); }
+
+fn_systemd_logind_set_ipc() { (
+    a_boot_daemon="${1}"
+    a_user="${2}"
+    a_ignore_logind_ipc="${3}"
+
+    b_non_login_user="$(grep -E "^${a_user}:.*(/bin/false|/sbin/nologin)\$" /etc/passwd || true)"
+
+    if test -n "${a_ignore_logind_ipc}"; then
+        if test -z "${a_boot_daemon}"; then
+            echo >&2 "warn: '--ignore-logind-ipc' has no meaning with '--agent'"
+            return 0
+        fi
+
+        if test -n "${b_non_login_user}"; then
+            echo >&2 "warn: '--ignore-logind-ipc' has no meaning for '${a_user}' (a non-login user)"
+            return 0
+        fi
+
+        if test -z "${SERVICEMAN_IGNORE_LOGIND_IPC:-}"; then
+            # ignoring return values to keep nix-compatible
+            mkdir -p ~/.config/serviceman/ || true
+            if ! test -e ~/.config/serviceman/config.env; then
+                touch ~/.config/serviceman/config.env || true
+            fi
+            if ! grep -q -F 'SERVICEMAN_IGNORE_LOGIND_IPC=' ~/.config/serviceman/config.env; then
+                {
+                    echo "# uncomment to make --ignore-logind-ipc the default"
+                    echo '#export SERVICEMAN_IGNORE_LOGIND_IPC=yes'
+                } >> ~/.config/serviceman/config.env || true
+            fi
+        fi
+    fi
+
+    if test -n "${a_ignore_logind_ipc}" || test -n "${SERVICEMAN_IGNORE_LOGIND_IPC:-}"; then
+        return 0
+    fi
+
+    if ! test -e /etc/systemd/logind.conf; then
+        echo >&2 "warn: missing /etc/systemd/logind.conf"
+        return 0
+    fi
+
+    if grep -q -E '^RemoveIPC=no' /etc/systemd/logind.conf; then
+        echo >&2 "Checking /etc/systemd/logind.conf: RemoveIPC=no"
+        return 0
+    fi
+
+    echo >&2 "Setting /etc/systemd/logind.conf: RemoveIPC=no"
+    ${cmd_sudo} sed -i 's/#\?RemoveIPC=.*/RemoveIPC=no # set by serviceman for daemons running as login users/' /etc/systemd/logind.conf
+    echo "    ${cmd_sudo} systemctl restart systemd-logind.service"
+    ${cmd_sudo} systemctl restart systemd-logind.service
 ); }
 
 fn_systemd_add() { (
