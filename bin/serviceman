@@ -587,10 +587,9 @@ fn_print_args() { (
     a_dryrun="${13}"
 
     echo ""
-    echo "PATH=${a_path}"
-    echo "(set with --path)"
-    echo ""
     echo "Running 'serviceman' with the following options:"
+    echo ""
+    echo "PATH=${a_path}"
     echo ""
     echo '    serviceman add \'
     echo "        --name '${a_name}' \\"
@@ -859,7 +858,6 @@ fn_systemd_add() { (
     ${b_sudo} systemctl${b_usertype} restart "${a_name}"
 
     sleep 0.5
-    echo "done" >&2
 
     echo "   ${b_sudo} systemctl${b_usertype} status -l --no-pager '${a_name}'" >&2
     echo "" >&2
