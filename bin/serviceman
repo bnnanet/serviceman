@@ -4,8 +4,8 @@ set -e
 set -u
 
 g_year='2024'
-g_version='v0.9.4'
-g_date='2024-12-22T23:39:00-07:00'
+g_version='v0.9.5'
+g_date='2024-12-23T00:25:00-07:00'
 g_license='MPL-2.0'
 
 g_scriptdir="$(dirname "${0}")"
