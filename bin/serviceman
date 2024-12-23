@@ -447,7 +447,7 @@ cmd_add() { (
 
     if test "${#}" -gt 0; then
         for b_arg in "${@}"; do
-            if echo "${b_arg}" | grep -qE '^\/'; then
+            if echo "${b_arg}" | grep -q -E '^\/'; then
                 if test -e "${b_arg}"; then
                     continue
                 fi
@@ -457,7 +457,7 @@ cmd_add() { (
                     return 1
                 fi
                 echo "warn: file or dir does not exist: '${b_arg}'" >&2
-            elif echo "${b_arg}" | grep -qE '^(\.\/|\.\.\/)'; then
+            elif echo "${b_arg}" | grep -q -E '^(\.\/|\.\.\/)'; then
                 if test -e "${b_workdir}/${b_arg}"; then
                     continue
                 fi
@@ -1117,7 +1117,7 @@ cmd_list() { (
             if ! grep -q -F "${b_header}" "${b_file}" 2> /dev/null; then
                 continue
             fi
-            if grep -i -q 'Generated for serviceman' "${b_file}" 2> /dev/null; then
+            if grep -q -i 'Generated for serviceman' "${b_file}" 2> /dev/null; then
                 echo "    $(basename "${b_file}")*"
             else
                 echo "    $(basename "${b_file}")"
