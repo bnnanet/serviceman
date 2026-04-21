@@ -8,6 +8,7 @@ description="EX_DESC"
 supervisor="supervise-daemon"
 output_log="/var/log/EX_NAME"
 error_log="/var/log/EX_NAME"
+rc_ulimit="-n 1048576"
 
 depend() {
     need net
