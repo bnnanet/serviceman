@@ -75,6 +75,7 @@ fn_add_help() { (
     echo ""
     echo "FLAGS"
     echo '    --no-cap-net-bind (Linux only)  do not set cap net bind for privileged ports'
+    echo '    --open-files <n>  max open file descriptors (default: current hard limit)'
     echo "    --dryrun  output service file without modifying disk"
     echo "    --force  install even if command or directory does not exist"
     echo "    --daemon (Linux, BSD default)  sudo, install system boot service"
@@ -147,6 +148,7 @@ cmd_add() { (
     b_cap_net_bind=''
     b_dryrun=''
     b_force=''
+    b_open_files="$(ulimit -Hn 2>/dev/null | grep -Eo '^[0-9]+$' || echo 262144)"
 
     b_boot_daemon_set=''
     b_boot_daemon=''
@@ -244,6 +246,14 @@ cmd_add() { (
                 ;;
             --no-cap-net-bind)
                 b_cap_net_bind='n'
+                ;;
+            --open-files)
+                if test -n "${b_has_arg}"; then
+                    b_open_files="${b_opt_arg}"
+                else
+                    b_open_files="${1:-}"
+                    shift
+                fi
                 ;;
             --dryrun)
                 b_dryrun='y'
@@ -587,7 +597,8 @@ cmd_add() { (
             "${b_path}" \
             "${b_cap_net_bind}" \
             "${b_dryrun}" \
-            "${b_cmdpath}"
+            "${b_cmdpath}" \
+            "${b_open_files}"
         return
     fi
 
@@ -1001,6 +1012,7 @@ fn_openrc_add() { (
     a_cap_net_bind="${11}"
     a_dryrun="${12}"
     a_cmd="${13}"
+    a_nofile="${14}"
 
     if test -n "${a_login_agent}"; then
         echo >&2 "error: '--agent' has no meaning for OpenRC - it doesn't support user launchers"
@@ -1024,7 +1036,8 @@ fn_openrc_add() { (
         sed "s;EX_WORKDIR;${a_workdir};g" |
         sed "s;EX_PATH;${a_path};g" |
         sed "s;EX_SUPERVISE_ARGS;${b_supervise_args};g" |
-        sed "s;EX_CMD;${a_cmd};g" > "${a_name}"
+        sed "s;EX_CMD;${a_cmd};g" |
+        sed "s;EX_NOFILE;${a_nofile};g" > "${a_name}"
 
     if test -n "${a_dryrun}"; then
         cat "${a_name}"
