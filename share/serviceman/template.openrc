@@ -8,13 +8,13 @@ description="EX_DESC"
 supervisor="supervise-daemon"
 output_log="/var/log/EX_NAME"
 error_log="/var/log/EX_NAME"
+rc_ulimit="-n 1048576"
 
 depend() {
     need net
 }
 
 start_pre() {
-    ulimit -n 1048576
     checkpath --directory --owner root /var/log/
     checkpath --file --owner 'EX_USER:EX_GROUP' ${output_log} ${error_log}
 }
