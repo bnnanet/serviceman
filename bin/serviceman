@@ -586,7 +586,8 @@ cmd_add() { (
             "${b_workdir}" \
             "${b_path}" \
             "${b_cap_net_bind}" \
-            "${b_dryrun}"
+            "${b_dryrun}" \
+            "${b_cmdpath}"
         return
     fi
 
@@ -999,6 +1000,7 @@ fn_openrc_add() { (
     a_path="${10}"
     a_cap_net_bind="${11}"
     a_dryrun="${12}"
+    a_cmd="${13}"
 
     if test -n "${a_login_agent}"; then
         echo >&2 "error: '--agent' has no meaning for OpenRC - it doesn't support user launchers"
@@ -1021,7 +1023,8 @@ fn_openrc_add() { (
         sed "s;EX_GROUP;${a_group};g" |
         sed "s;EX_WORKDIR;${a_workdir};g" |
         sed "s;EX_PATH;${a_path};g" |
-        sed "s;EX_SUPERVISE_ARGS;${b_supervise_args};g" > "${a_name}"
+        sed "s;EX_SUPERVISE_ARGS;${b_supervise_args};g" |
+        sed "s;EX_CMD;${a_cmd};g" > "${a_name}"
 
     if test -n "${a_dryrun}"; then
         cat "${a_name}"
