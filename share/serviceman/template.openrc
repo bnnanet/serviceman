@@ -30,6 +30,7 @@ start() {
         --pidfile /run/${RC_SVCNAME}.pid \
         --respawn-delay 5 \
         --respawn-max 51840 \
+        --respawn-period 259201 \
         EX_SUPERVISE_ARGS \
         -- \
         EX_POSIX_ARGS
@@ -40,5 +41,8 @@ stop() {
     ebegin "Stopping ${name}"
     supervise-daemon ${name} --stop \
         --pidfile /run/${RC_SVCNAME}.pid
+    start-stop-daemon --stop --quiet \
+        --retry TERM/20/KILL/1 \
+        --exec 'EX_CMD' 2>/dev/null || true
     eend $?
 }
