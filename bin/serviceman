@@ -773,16 +773,11 @@ fn_launchctl_add() { (
         echo "Initializing launchctl service..."
         echo "    create ${b_launcher_path}/${a_name}.plist"
     } >&2
-    ${b_sudo} mv "${a_name}.plist" "${b_launcher_path}/${a_name}.plist"
-    ${b_sudo} chmod 0644 "${b_launcher_path}/${a_name}.plist"
-    ${b_sudo} chown -R "${a_user}:${a_group}" "${b_launcher_path}/${a_name}.plist"
+    ${b_sudo} install -m 0644 -o "${a_user}" -g "${a_group}" "${a_name}.plist" "${b_launcher_path}/${a_name}.plist"
 
     echo "    create ~/.local/share/${a_name}/var/log/" >&2
-    ${b_sudo} mkdir -p "${b_log_prefix}/var/log/"
-    ${b_sudo} chmod 0750 "${b_log_prefix}/var/log/"
-    ${b_sudo} touch "${b_log_prefix}/var/log/${a_name}.log"
-    ${b_sudo} chmod 0640 "${b_log_prefix}/var/log/${a_name}.log"
-    ${b_sudo} chown -R "${a_user}":"${a_group}" "${b_log_prefix}/var/log/${a_name}.log"
+    ${b_sudo} install -d -m 0750 "${b_log_prefix}/var/log/"
+    ${b_sudo} install -m 0640 -o "${a_user}" -g "${a_group}" /dev/null "${b_log_prefix}/var/log/${a_name}.log"
 
     echo "   ${b_sudo} launchctl unload -w '${b_launcher_path}/${a_name}.plist'" >&2
     ${b_sudo} launchctl unload -w "${b_launcher_path}/${a_name}.plist" 2> /dev/null || true
@@ -937,14 +932,13 @@ fn_systemd_add() { (
         echo "Initializing systemd service..."
         echo "    create ${b_service_path}/${a_name}.service"
     } >&2
-    ${b_sudo} mv "${a_name}.service" "${b_service_path}/${a_name}.service"
-    ${b_sudo} chmod 0644 "${b_service_path}/${a_name}.service"
     if test -z "${a_login_agent}"; then
-        ${cmd_sudo} chown -R root:root "${b_service_path}/${a_name}.service"
-
+        ${b_sudo} install -m 0644 -o root -g root "${a_name}.service" "${b_service_path}/${a_name}.service"
         echo "    ${cmd_sudo} systemctl${b_usertype} restart systemd-journald" >&2
         #shellcheck disable=SC2086
         ${cmd_sudo} systemctl${b_usertype} restart systemd-journald
+    else
+        ${b_sudo} install -m 0644 "${a_name}.service" "${b_service_path}/${a_name}.service"
     fi
 
     echo "   ${b_sudo} systemctl${b_usertype} daemon-reload" >&2
@@ -1052,22 +1046,17 @@ fn_openrc_add() { (
 
     echo "Initializing OpenRC service..." >&2
     echo "    create /etc/init.d/${a_name}" >&2
-    ${cmd_sudo} mv "${a_name}.openrc.tmp" "/etc/init.d/${a_name}"
-    ${cmd_sudo} chmod 0755 "/etc/init.d/${a_name}"
-    ${cmd_sudo} chown -R root:root "/etc/init.d/${a_name}"
+    ${cmd_sudo} install -m 0755 -o root -g root "${a_name}.openrc.tmp" "/etc/init.d/${a_name}"
 
     echo "    create /etc/logrotate.d/${a_name}" >&2
     # shellcheck disable=SC2002
     cat "${g_scriptdir}/../share/serviceman/template.logrotate" |
-        sed "s;EX_NAME;${a_name};g" |
-        ${cmd_sudo} tee "/etc/logrotate.d/${a_name}" > /dev/null
-    ${cmd_sudo} chmod 0640 "/etc/logrotate.d/${a_name}"
-    ${cmd_sudo} chown -R root:root "/etc/logrotate.d/${a_name}"
+        sed "s;EX_NAME;${a_name};g" > "${a_name}.logrotate.tmp"
+    ${cmd_sudo} install -m 0640 -o root -g root "${a_name}.logrotate.tmp" "/etc/logrotate.d/${a_name}"
+    rm -f "${a_name}.logrotate.tmp"
 
     echo "    create /var/log/${a_name}" >&2
-    ${cmd_sudo} touch "/var/log/${a_name}"
-    ${cmd_sudo} chmod 0640 "/var/log/${a_name}"
-    ${cmd_sudo} chown -R "${a_user}":"${a_group}" "/var/log/${a_name}"
+    ${cmd_sudo} install -m 0640 -o "${a_user}" -g "${a_group}" /dev/null "/var/log/${a_name}"
 
     echo "    rc-service '${a_name}' restart" >&2
     ${cmd_sudo} rc-service "${a_name}" restart &&
