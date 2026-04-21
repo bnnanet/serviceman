@@ -1042,16 +1042,17 @@ fn_openrc_add() { (
         sed "s;EX_PATH;${a_path};g" |
         sed "s;EX_SUPERVISE_ARGS;${b_supervise_args};g" |
         sed "s;EX_CMD;${a_cmd};g" |
-        sed "s;EX_NOFILE;${a_nofile};g" > "${a_name}"
+        sed "s;EX_NOFILE;${a_nofile};g" > "${a_name}.openrc.tmp"
 
     if test -n "${a_dryrun}"; then
-        cat "${a_name}"
+        cat "${a_name}.openrc.tmp"
+        rm -f "${a_name}.openrc.tmp"
         return 0
     fi
 
     echo "Initializing OpenRC service..." >&2
     echo "    create /etc/init.d/${a_name}" >&2
-    ${cmd_sudo} mv "${a_name}" "/etc/init.d/${a_name}"
+    ${cmd_sudo} mv "${a_name}.openrc.tmp" "/etc/init.d/${a_name}"
     ${cmd_sudo} chmod 0755 "/etc/init.d/${a_name}"
     ${cmd_sudo} chown -R root:root "/etc/init.d/${a_name}"
 
