@@ -14,6 +14,7 @@ depend() {
 }
 
 start_pre() {
+    ulimit -n 1048576
     checkpath --directory --owner root /var/log/
     checkpath --file --owner 'EX_USER:EX_GROUP' ${output_log} ${error_log}
 }
