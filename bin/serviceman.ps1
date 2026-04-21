@@ -62,35 +62,63 @@ function Test-Administrator {
 }
 
 function Read-NextArg {
-    <# Consume the next positional arg, or the inline =value if present. #>
+    <#
+    Consume the next positional arg, or the inline =value if present.
+    Exits with an error if the flag is trailing and has no value.
+    #>
     param(
+        [string]$Flag,
         [bool]$HasInline,
         [string]$InlineValue,
         [string[]]$Argv,
         [ref]$Index
     )
     if ($HasInline) { return $InlineValue }
+    if ($Index.Value -ge $Argv.Count) {
+        Write-Host "error: '$Flag' requires a value" -ForegroundColor Red
+        exit 1
+    }
     $Value = $Argv[$Index.Value]
     $Index.Value++
     return $Value
 }
 
+function ConvertTo-CmdSafe {
+    <# Escape % for use inside a .cmd batch file (where %x triggers expansion). #>
+    param([string]$Value)
+    return $Value -replace '%', '%%'
+}
+
 function Build-CmdLine {
-    <# Quote and join a command path + arguments for a .cmd wrapper. #>
+    <#
+    Quote and join a command path + arguments for a .cmd wrapper.
+    Escapes embedded quotes and %; wraps in "..." when the arg contains
+    whitespace or cmd metacharacters.
+    #>
     param(
         [string]$CmdPath,
         [string[]]$CmdArgs
     )
     $Parts = [System.Collections.Generic.List[string]]::new()
-    $Parts.Add("`"$CmdPath`"")
+    $Parts.Add("`"$(ConvertTo-CmdSafe $CmdPath)`"")
     foreach ($Arg in $CmdArgs) {
-        if ($Arg -match '[\s&|<>^"%]') {
-            $Parts.Add("`"$($Arg -replace '"', '\"')`"")
+        $Safe = ConvertTo-CmdSafe $Arg
+        if ($Safe -match '[\s&|<>^"()]' -or $Safe -eq '') {
+            $Parts.Add("`"$($Safe -replace '"', '\"')`"")
         } else {
-            $Parts.Add($Arg)
+            $Parts.Add($Safe)
         }
     }
     return $Parts -join ' '
+}
+
+function Test-ValidTaskName {
+    <# Return $true if $Name is a legal Windows Task Scheduler task name. #>
+    param([string]$Name)
+    if (-not $Name) { return $false }
+    if ($Name -match '[\\/:*?"<>|]') { return $false }
+    if ($Name -match '[\x00-\x1f]') { return $false }
+    return $true
 }
 
 # ── Help Display ───────────────────────────────────────────────────────────────
@@ -147,7 +175,7 @@ FLAGS
     --  stop reading flags (to prevent conflict with command)
 
 OPTIONS
-    --name <name>  the service name, defaults to binary or workdir name
+    --name <name>  the service name, defaults to the binary name
     --desc <description>  a brief description of the service
     --path <PATH>  defaults to current `$env:PATH (set to '' to disable)
     --title <title>  the service name, stylized
@@ -411,29 +439,29 @@ function Invoke-Add {
             }
 
             # ── Options with values ────────────────────────────────────────
-            '--name'  { $Name    = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i) }
-            '--desc'  { $Desc    = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i) }
-            '--title' { $Title   = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i) }
-            '--url'   { $Url     = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i) }
-            '--user'  { $User    = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i) }
-            '--path'  { $SvcPath = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i) }
+            '--name'  { $Name    = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i) }
+            '--desc'  { $Desc    = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i) }
+            '--title' { $Title   = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i) }
+            '--url'   { $Url     = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i) }
+            '--user'  { $User    = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i) }
+            '--path'  { $SvcPath = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i) }
             '--workdir' {
-                $Raw = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i)
+                $Raw = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i)
                 $Workdir = (Resolve-Path $Raw).Path
             }
 
             # ── Platform-inapplicable flags (consume value, warn) ──────────
             '--group' {
-                $null = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i)
+                $null = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i)
                 Write-Warning '--group has no effect on Windows'
             }
             '--rdns' {
-                $null = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i)
+                $null = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i)
                 Write-Warning '--rdns is only valid for launchctl (macOS)'
             }
             '--no-cap-net-bind'   { Write-Warning '--no-cap-net-bind has no effect on Windows' }
             '--nofiles-limit' {
-                $null = Read-NextArg $HasInline $InlineValue $Argv ([ref]$i)
+                $null = Read-NextArg $Arg $HasInline $InlineValue $Argv ([ref]$i)
                 Write-Warning '--nofiles-limit has no effect on Windows'
             }
             '--ignore-logind-ipc' { Write-Warning '--ignore-logind-ipc only applies to systemd service units' }
@@ -477,9 +505,15 @@ function Invoke-Add {
         exit 1
     }
 
+    if ($IsDaemon -and $User -ne 'SYSTEM') {
+        Write-Host "error: --daemon --user only supports 'SYSTEM' (Task Scheduler requires stored credentials for other accounts)" -ForegroundColor Red
+        exit 1
+    }
+
     # ── Resolve command ────────────────────────────────────────────────────
 
-    $CmdInfo = Get-Command $Exec -ErrorAction SilentlyContinue
+    $CmdInfo = Get-Command $Exec -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     $CmdPath = if ($CmdInfo) { $CmdInfo.Source } else { '' }
 
     if (-not $CmdPath) {
@@ -490,18 +524,14 @@ function Invoke-Add {
         $CmdPath = $Exec
     }
 
-    # Interpreted scripts default to workdir name; binaries default to exe name
-    $IsInterpreted = $CmdPath -match '\.(py|js|rb|pl|php|ps1)$'
-
-    if (-not $Name) {
-        $Name = if ($IsInterpreted) {
-            Split-Path -Leaf $Workdir
-        } else {
-            [IO.Path]::GetFileNameWithoutExtension($Exec)
-        }
-    }
+    if (-not $Name)  { $Name  = [IO.Path]::GetFileNameWithoutExtension($Exec) }
     if (-not $Title) { $Title = $Name }
     if (-not $Desc)  { $Desc  = "$Title daemon" }
+
+    if (-not (Test-ValidTaskName $Name)) {
+        Write-Host "error: invalid service name '$Name' (must not contain \ / : * ? `" < > | or control chars)" -ForegroundColor Red
+        exit 1
+    }
 
     # ── Validate path-like arguments ───────────────────────────────────────
 
@@ -551,33 +581,44 @@ function Invoke-Add {
 
     # ── Summary ────────────────────────────────────────────────────────────
 
-    Write-ArgsSummary `
-        -IsAgent  $IsAgent `
-        -Name     $Name `
-        -Title    $Title `
-        -Desc     $Desc `
-        -Url      $Url `
-        -User     $User `
-        -Workdir  $Workdir `
-        -SvcPath  $SvcPath `
-        -CmdPath  $CmdPath `
-        -CmdArgs  $CmdArgs.ToArray() `
-        -DryRun   $DryRun
+    $CmdArgArray = $CmdArgs.ToArray()
+    $SummaryParams = @{
+        IsAgent = $IsAgent
+        Name    = $Name
+        Title   = $Title
+        Desc    = $Desc
+        Url     = $Url
+        User    = $User
+        Workdir = $Workdir
+        SvcPath = $SvcPath
+        CmdPath = $CmdPath
+        CmdArgs = $CmdArgArray
+        DryRun  = $DryRun
+    }
+    Write-ArgsSummary @SummaryParams
     Write-Host ''
     Start-Sleep -Milliseconds 500
 
     # ── Build wrapper ──────────────────────────────────────────────────────
+    # Note: % must be escaped as %% in a .cmd file to avoid variable expansion.
 
-    $ExecLine = Build-CmdLine $CmdPath $CmdArgs.ToArray()
+    $ExecLine    = Build-CmdLine $CmdPath $CmdArgArray
+    $SafeTitle   = ConvertTo-CmdSafe $Title
+    $SafeDesc    = ConvertTo-CmdSafe $Desc
+    $SafeUrl     = ConvertTo-CmdSafe $Url
+    $SafeWorkdir = ConvertTo-CmdSafe $Workdir
+    $SafePath    = ConvertTo-CmdSafe $SvcPath
+    $SafeLog     = ConvertTo-CmdSafe $LogFile
+
     $WrapperContent = @"
 @echo off
 :: Generated for serviceman. Edit as needed. Keep this line for 'serviceman list'.
-:: $Title - $Desc
-:: $Url
+:: $SafeTitle - $SafeDesc
+:: $SafeUrl
 
-cd /d "$Workdir"
-set "PATH=$SvcPath"
-$ExecLine >> "$LogFile" 2>&1
+cd /d "$SafeWorkdir"
+set "PATH=$SafePath"
+$ExecLine >> "$SafeLog" 2>&1
 "@
 
     if ($DryRun) {
@@ -707,10 +748,13 @@ function Invoke-List {
     }
 
     Write-Host ''
-    Write-Host 'Task Scheduler:'
+    Write-Host 'Task Scheduler (excluding Microsoft built-ins):'
     Write-Host ''
 
+    # Skip Microsoft\ hierarchy — thousands of built-in Windows tasks that
+    # drown out anything serviceman users actually care about.
     $Tasks = Get-ScheduledTask -ErrorAction SilentlyContinue |
+        Where-Object { $_.TaskPath -notmatch '^\\Microsoft\\' } |
         Sort-Object TaskPath, TaskName
     if (-not $Tasks) {
         Write-Host '    (none)'
@@ -730,7 +774,7 @@ function Invoke-Start {
     $Parsed = Read-StateArgs 'start' $Argv
     if ($null -eq $Parsed) { return }
 
-    Write-Host "Start-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
+    Write-Host "[serviceman\$($Parsed.Name)] starting..."
     Start-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name
 }
 
@@ -739,7 +783,7 @@ function Invoke-Stop {
     $Parsed = Read-StateArgs 'stop' $Argv
     if ($null -eq $Parsed) { return }
 
-    Write-Host "Stop-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
+    Write-Host "[serviceman\$($Parsed.Name)] stopping..."
     Stop-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name
 }
 
@@ -748,10 +792,9 @@ function Invoke-Restart {
     $Parsed = Read-StateArgs 'restart' $Argv
     if ($null -eq $Parsed) { return }
 
-    Write-Host "Stop-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
+    Write-Host "[serviceman\$($Parsed.Name)] restarting..."
     Stop-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name -ErrorAction SilentlyContinue
     Start-Sleep -Milliseconds 500
-    Write-Host "Start-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
     Start-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name
 }
 
@@ -760,9 +803,8 @@ function Invoke-Enable {
     $Parsed = Read-StateArgs 'enable' $Argv
     if ($null -eq $Parsed) { return }
 
-    Write-Host "Enable-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
+    Write-Host "[serviceman\$($Parsed.Name)] enabling..."
     Enable-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name | Out-Null
-    Write-Host "Start-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
     Start-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name
 }
 
@@ -771,9 +813,8 @@ function Invoke-Disable {
     $Parsed = Read-StateArgs 'disable' $Argv
     if ($null -eq $Parsed) { return }
 
-    Write-Host "Stop-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
+    Write-Host "[serviceman\$($Parsed.Name)] disabling..."
     Stop-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name -ErrorAction SilentlyContinue
-    Write-Host "Disable-ScheduledTask -TaskPath '$Script:TaskPath' -TaskName '$($Parsed.Name)'"
     Disable-ScheduledTask -TaskPath $Script:TaskPath -TaskName $Parsed.Name | Out-Null
 }
 
@@ -793,7 +834,7 @@ function Invoke-Logs {
         exit 1
     }
 
-    Write-Host "Get-Content -Wait '$LogFile'"
+    Write-Host "[serviceman\$($Parsed.Name)] tailing $LogFile"
     Get-Content -Wait -Tail 50 $LogFile
 }
 
