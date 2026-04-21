@@ -94,6 +94,13 @@ fn_add_help() { (
     echo "    --user <username>  defaults to '$(id -u -n)'"
     echo '    --workdir <dirpath>  where the command runs, defaults to current directory'
     echo ""
+    echo "SUDO (--daemon mode)"
+    echo "    File placement uses 'install' — grantable NOPASSWD:"
+    echo "        NOPASSWD: /usr/bin/install"
+    echo "    Service control always requires sudo (cannot run unprivileged):"
+    echo "        NOPASSWD: /sbin/rc-service, /sbin/rc-update  # OpenRC (Alpine, Gentoo, Devuan)"
+    echo "        NOPASSWD: /usr/bin/systemctl                  # systemd"
+    echo ""
     echo "DEPRECATED (DO NOT USE)"
     echo "    --system  alias of --daemon, for compatibility"
     echo "    --username  alias of --user, for compatibility"

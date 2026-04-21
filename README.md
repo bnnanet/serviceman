@@ -114,6 +114,30 @@ EXAMPLES
     shell:   serviceman add --name 'foo' -- ./foo.sh --bar ./baz
 ```
 
+# Sudo / Permissions
+
+`serviceman add --daemon` uses `sudo` internally for two categories of operations:
+
+**File placement** — uses `install`. Can be granted `NOPASSWD`:
+
+```sudoers
+# /etc/sudoers.d/serviceman
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/install
+```
+
+**Service control** — always requires sudo (these modify kernel/init state):
+
+```sudoers
+# OpenRC (Alpine, Gentoo, Devuan)
+%wheel ALL=(ALL) NOPASSWD: /sbin/rc-service
+%wheel ALL=(ALL) NOPASSWD: /sbin/rc-update
+
+# systemd (Debian, Ubuntu, Arch, Fedora, etc.)
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/systemctl
+```
+
+With these in place, `serviceman add` runs without a password prompt from end to end.
+
 # Changes in v1.0
 
 -   add OpenRC (Alpine Linux) support
