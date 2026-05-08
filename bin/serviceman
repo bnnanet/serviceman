@@ -714,6 +714,7 @@ fn_launchctl_add() { (
 
     if test -n "${a_dryrun}"; then
         cat "${a_name}.plist"
+        rm -f "${a_name}.plist"
         return 0
     fi
 
@@ -722,6 +723,7 @@ fn_launchctl_add() { (
         echo "    create ${b_launcher_path}/${a_name}.plist"
     } >&2
     ${b_sudo} install -m 0644 -o "${a_user}" -g "${a_group}" "${a_name}.plist" "${b_launcher_path}/${a_name}.plist"
+    rm -f "${a_name}.plist"
 
     echo "    create ~/.local/share/${a_name}/var/log/" >&2
     ${b_sudo} install -d -m 0750 "${b_log_prefix}/var/log/"
@@ -873,6 +875,7 @@ fn_systemd_add() { (
 
     if test -n "${a_dryrun}"; then
         cat "${a_name}.service"
+        rm -f "${a_name}.service"
         return 0
     fi
 
@@ -888,6 +891,7 @@ fn_systemd_add() { (
     else
         ${b_sudo} install -m 0644 "${a_name}.service" "${b_service_path}/${a_name}.service"
     fi
+    rm -f "${a_name}.service"
 
     echo "   ${b_sudo} systemctl${b_usertype} daemon-reload" >&2
     #shellcheck disable=SC2086
@@ -995,6 +999,7 @@ fn_openrc_add() { (
     echo "Initializing OpenRC service..." >&2
     echo "    create /etc/init.d/${a_name}" >&2
     ${cmd_sudo} install -m 0755 -o root -g root "${a_name}.openrc.tmp" "/etc/init.d/${a_name}"
+    rm -f "${a_name}.openrc.tmp"
 
     echo "    create /etc/logrotate.d/${a_name}" >&2
     # shellcheck disable=SC2002
