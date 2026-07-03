@@ -150,9 +150,9 @@ cmd_add() { (
     b_cap_net_bind=''
     b_dryrun=''
     b_force=''
-    _b_hn="$(ulimit -Hn 2>/dev/null)"
+    _b_hn="$(ulimit -Hn 2> /dev/null)"
     case "${_b_hn}" in
-        *[!0-9]*|'') b_open_files="262144" ;;
+        *[!0-9]* | '') b_open_files="262144" ;;
         *) b_open_files="${_b_hn}" ;;
     esac
     unset _b_hn
