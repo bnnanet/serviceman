@@ -1772,7 +1772,7 @@ cmd_status() { (
 		esac
 	done
 	if test -z "${b_name}"; then
-		echo >&2 'error: missing command name'
+		echo >&2 "error: missing command name"
 		return 1
 	fi
 
