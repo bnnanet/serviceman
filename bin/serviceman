@@ -4,7 +4,7 @@ set -e
 set -u
 
 g_year='2024'
-g_version='v1.0.2'
+g_version='v1.0.3'
 g_date='2026-05-08T13:49-06:00'
 g_license='MPL-2.0'
 
