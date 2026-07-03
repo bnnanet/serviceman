@@ -10,6 +10,13 @@ g_license='MPL-2.0'
 
 g_scriptdir=$(dirname "${0}")
 g_os=$(uname -s)
+g_tmpfiles=""
+fn_cleanup() {
+	for f in ${g_tmpfiles}; do
+		rm -f "${f}"
+	done
+}
+trap 'fn_cleanup' EXIT
 cmd_sudo=""
 if command -v sudo > /dev/null; then
 	cmd_sudo='sudo'
@@ -719,6 +726,7 @@ fn_launchctl_add() { (
 		sed "s;EX_GROUP;${a_group};g" |
 		sed "s;EX_WORKDIR;${a_workdir};g" |
 		sed "s;EX_PATH;${a_path};g" > "${a_name}.plist"
+	g_tmpfiles="${g_tmpfiles} ${a_name}.plist"
 
 	if test -n "${a_dryrun}"; then
 		cat "${a_name}.plist"
@@ -868,6 +876,7 @@ fn_systemd_add() { (
 		sed "s;EX_GROUP;${a_group};g" |
 		sed "s;EX_WORKDIR;${a_workdir};g" |
 		sed "s;EX_PATH;${a_path};g" > "${a_name}.service"
+	g_tmpfiles="${g_tmpfiles} ${a_name}.service"
 
 	if test "${a_cap_net_bind}" = 'n'; then
 		mv "${a_name}.service" "${a_name}.service.new"
@@ -997,6 +1006,7 @@ fn_openrc_add() { (
 		sed "s;EX_SUPERVISE_ARGS;${b_supervise_args};g" |
 		sed "s;EX_CMD;${a_cmd};g" |
 		sed "s;EX_NOFILE;${a_nofile};g" > "${a_name}.openrc.tmp"
+	g_tmpfiles="${g_tmpfiles} ${a_name}.openrc.tmp"
 
 	if test -n "${a_dryrun}"; then
 		cat "${a_name}.openrc.tmp"
@@ -1013,6 +1023,7 @@ fn_openrc_add() { (
 	# shellcheck disable=SC2002
 	cat "${g_scriptdir}/../share/serviceman/template.logrotate" |
 		sed "s;EX_NAME;${a_name};g" > "${a_name}.logrotate.tmp"
+	g_tmpfiles="${g_tmpfiles} ${a_name}.logrotate.tmp"
 	${cmd_sudo} install -m 0640 -o root -g root "${a_name}.logrotate.tmp" "/etc/logrotate.d/${a_name}"
 	rm -f "${a_name}.logrotate.tmp"
 
