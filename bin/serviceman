@@ -8,7 +8,7 @@ g_version='v1.0.3'
 g_date='2026-05-08T13:49-06:00'
 g_license='MPL-2.0'
 
-g_scriptdir="$(dirname "${0}")"
+g_scriptdir=$(dirname "${0}")
 cmd_sudo=""
 if command -v sudo > /dev/null; then
 	cmd_sudo='sudo'
@@ -150,7 +150,7 @@ cmd_add() { (
 	b_cap_net_bind=''
 	b_dryrun=''
 	b_force=''
-	_b_hn="$(ulimit -Hn 2> /dev/null)"
+	_b_hn=$(ulimit -Hn 2> /dev/null)
 	case "${_b_hn}" in
 		*[!0-9]* | '') b_open_files="262144" ;;
 		*) b_open_files="${_b_hn}" ;;
@@ -177,12 +177,12 @@ cmd_add() { (
 		case "${b_arg}" in
 			-*=)
 				b_has_arg='y'
-				b_arg="$(printf '%s' "${b_arg}" | cut -d= -f1)"
+				b_arg=$(printf '%s' "${b_arg}" | cut -d= -f1)
 				;;
 			-*=*)
 				b_has_arg='y'
-				b_opt_arg="$(printf '%s' "${b_arg}" | cut -d= -f2-)"
-				b_arg="$(printf '%s' "${b_arg}" | cut -d= -f1)"
+				b_opt_arg=$(printf '%s' "${b_arg}" | cut -d= -f2-)
+				b_arg=$(printf '%s' "${b_arg}" | cut -d= -f1)
 				;;
 		esac
 
@@ -308,9 +308,9 @@ cmd_add() { (
 				;;
 			--workdir)
 				if test -n "${b_has_arg}"; then
-					b_workdir="$(realpath "${b_opt_arg}")"
+					b_workdir=$(realpath "${b_opt_arg}")
 				else
-					b_workdir="$(realpath "${1:-}")"
+					b_workdir=$(realpath "${1:-}")
 					shift
 				fi
 				;;
@@ -342,7 +342,7 @@ cmd_add() { (
 	fi
 
 	if test -z "${b_workdir}"; then
-		b_workdir="$(pwd)"
+		b_workdir=$(pwd)
 	fi
 	# if test -z "${b_path}"; then
 	#     b_path="${PATH}"
@@ -356,10 +356,10 @@ cmd_add() { (
 		fi
 	else
 		if test -z "${b_user}"; then
-			b_user="$(id -u -n)"
+			b_user=$(id -u -n)
 		fi
 		if test -z "${b_group}"; then
-			b_group="$(id -g -n)"
+			b_group=$(id -g -n)
 		fi
 	fi
 
@@ -378,9 +378,9 @@ cmd_add() { (
 	fi
 
 	b_interpreter=''
-	b_cmdpath="$(command -v "${b_exec}" || true)"
+	b_cmdpath=$(command -v "${b_exec}" || true)
 	# we probably don't need the realpath, the path in the PATH is good enough
-	#b_cmdpath="$(realpath "${b_cmdpath}" 2> /dev/null || true)"
+	#b_cmdpath=$(realpath "${b_cmdpath}" 2> /dev/null || true)
 	if test -z "${b_cmdpath}"; then
 		if test -z "${b_force}"; then
 			echo >&2 "error: '${b_exec}' not found (use --force to ignore)"
@@ -388,11 +388,11 @@ cmd_add() { (
 		fi
 		b_cmdpath="${b_exec}"
 	else
-		b_interp="$(fn_read_shebang "${b_cmdpath}")"
+		b_interp=$(fn_read_shebang "${b_cmdpath}")
 		if test -n "${b_interp}"; then
-			b_interpreter="$(command -v "${b_interp}" || true)"
+			b_interpreter=$(command -v "${b_interp}" || true)
 			# it's important to NOT resolve /bin/sh to /bin/busybox
-			#b_interpreter="$(realpath "${b_interpreter}" 2> /dev/null || true)"
+			#b_interpreter=$(realpath "${b_interpreter}" 2> /dev/null || true)
 			if test -z "${b_interpreter}"; then
 				if test -z "${b_force}"; then
 					echo >&2 "error: '${b_interp}' not found (use --force to ignore)"
@@ -406,7 +406,7 @@ cmd_add() { (
 	if test -z "${b_name}"; then
 		if test -n "${b_interpreter}"; then
 			# ex: use the workdir name for node or python
-			b_name="$(basename "${b_workdir}")"
+			b_name=$(basename "${b_workdir}")
 		else
 			# ex: use the bin name for caddy or postgres
 			b_name="${b_exec}"
@@ -456,9 +456,9 @@ cmd_add() { (
 
 	b_posix_args=''
 	if test "${#}" -gt "0"; then
-		b_posix_args="$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}" "${@}")"
+		b_posix_args=$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}" "${@}")
 	else
-		b_posix_args="$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}")"
+		b_posix_args=$(fn_args_build_posix "${b_interpreter}" "${b_cmdpath}")
 	fi
 
 	fn_print_args \
@@ -488,9 +488,9 @@ cmd_add() { (
 
 		b_systemd_args=''
 		if test "${#}" -gt "0"; then
-			b_systemd_args="$(fn_args_build_systemd "${b_interpreter}" "${b_cmdpath}" "${@}")"
+			b_systemd_args=$(fn_args_build_systemd "${b_interpreter}" "${b_cmdpath}" "${@}")
 		else
-			b_systemd_args="$(fn_args_build_systemd "${b_interpreter}" "${b_cmdpath}")"
+			b_systemd_args=$(fn_args_build_systemd "${b_interpreter}" "${b_cmdpath}")
 		fi
 		fn_systemd_add \
 			"${b_login_agent}" \
@@ -512,9 +512,9 @@ cmd_add() { (
 	if command -v launchctl > /dev/null; then
 		b_plist_args=''
 		if test "${#}" -gt "0"; then
-			b_plist_args="$(fn_args_build_plist "${b_interpreter}" "${b_cmdpath}" "${@}")"
+			b_plist_args=$(fn_args_build_plist "${b_interpreter}" "${b_cmdpath}" "${@}")
 		else
-			b_plist_args="$(fn_args_build_plist "${b_interpreter}" "${b_cmdpath}")"
+			b_plist_args=$(fn_args_build_plist "${b_interpreter}" "${b_cmdpath}")
 		fi
 
 		fn_launchctl_add \
@@ -624,7 +624,7 @@ fn_args_build_systemd() { (
 	b_execstart=''
 	for a_arg in "${@}"; do
 		# escape backslashes and double quotes, then wrap in double quotes
-		b_escaped="$(printf '%s' "${a_arg}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+		b_escaped=$(printf '%s' "${a_arg}" | sed 's/\\/\\\\/g; s/"/\\"/g')
 		# delimit with leading space
 		b_execstart="${b_execstart} \"${b_escaped}\""
 	done
@@ -642,7 +642,7 @@ fn_args_build_posix() { (
 	b_args=''
 	for a_arg in "${@}"; do
 		# escape literal quotes as '\''
-		b_escaped="$(printf '%s' "${a_arg}" | sed "s/'/'\\\\''/g")"
+		b_escaped=$(printf '%s' "${a_arg}" | sed "s/'/'\\\\''/g")
 		# space delimit the literal-quoted escaped strings
 		b_args="${b_args} '${b_escaped}'"
 	done
@@ -775,7 +775,7 @@ fn_systemd_logind_set_ipc() { (
 	a_user="${2}"
 	a_ignore_logind_ipc="${3}"
 
-	b_non_login_user="$(grep -E "^${a_user}:.*(/bin/false|/sbin/nologin)\$" /etc/passwd || true)"
+	b_non_login_user=$(grep -E "^${a_user}:.*(/bin/false|/sbin/nologin)\$" /etc/passwd || true)
 
 	if test -n "${a_ignore_logind_ipc}"; then
 		if test -z "${a_boot_daemon}"; then
@@ -1043,13 +1043,13 @@ fn_openrc_help() { (
 
 fn_read_shebang() { (
 	b_file="${1}"
-	b_shebang="$(head -c 2 "${b_file}")"
+	b_shebang=$(head -c 2 "${b_file}")
 
 	if test "#!" != "${b_shebang}"; then
 		return
 	fi
 
-	b_program="$(head -n 1 "${b_file}" | tr '/' ' ' | rev | cut -d' ' -f1 | rev)"
+	b_program=$(head -n 1 "${b_file}" | tr '/' ' ' | rev | cut -d' ' -f1 | rev)
 	echo "${b_program}"
 ); }
 
@@ -1141,7 +1141,7 @@ cmd_list() { (
 			echo ""
 			echo "${b_path}: (Generated for serviceman)"
 			echo ""
-			b_list="$(grep -i 'Generated for serviceman' "${b_path}"/* 2> /dev/null | cut -d':' -f1 | rev | cut -d'/' -f1 | rev)"
+			b_list=$(grep -i 'Generated for serviceman' "${b_path}"/* 2> /dev/null | cut -d':' -f1 | rev | cut -d'/' -f1 | rev)
 			if test -z "${b_list}"; then
 				echo "    (none)"
 			else
