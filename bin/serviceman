@@ -1716,8 +1716,8 @@ cmd_disable() { (
 	return 1
 ); }
 
-cmd_logs() { (
-	b_state='logs'
+cmd_status() { (
+	b_state='status'
 
 	b_boot_daemon=''
 	b_login_agent=''
@@ -1758,6 +1758,132 @@ cmd_logs() { (
 				return 1
 				;;
 			*)
+				if test -z "${b_name}"; then
+					b_name="${b_arg}"
+					continue
+				fi
+
+				{
+					echo "error: unrecognized argument '${b_arg}'"
+					fn_state_help "${b_state}"
+				} >&2
+				return 1
+				;;
+		esac
+	done
+	if test -z "${b_name}"; then
+		echo >&2 'error: missing command name'
+		return 1
+	fi
+
+	if command -v systemctl > /dev/null; then
+		if test -n "${b_boot_daemon}"; then
+			echo ${cmd_sudo} systemctl status --system "${b_name}"
+			${cmd_sudo} systemctl status --system "${b_name}"
+		else
+			echo systemctl status --user "${b_name}"
+			systemctl status --user "${b_name}"
+		fi
+		return 0
+	fi
+
+	if command -v launchctl > /dev/null; then
+		if test -n "${b_boot_daemon}"; then
+			echo ${cmd_sudo} launchctl list "${b_name}"
+			${cmd_sudo} launchctl list "${b_name}"
+		else
+			echo launchctl list "${b_name}"
+			launchctl list "${b_name}"
+		fi
+		return 0
+	fi
+
+	if command -v rc-update > /dev/null; then
+		if test -n "${b_boot_daemon}"; then
+			echo ${cmd_sudo} rc-service "${b_name}" status
+			${cmd_sudo} rc-service "${b_name}" status
+		else
+			echo >&2 "error: '--agent' is not supported for openrc"
+			return 1
+		fi
+		return 0
+	fi
+
+	echo >&2 'error: could not detect systemd, openrc, or launchctl'
+	return 1
+); }
+
+cmd_logs() { (
+	b_state='logs'
+
+	b_boot_daemon=''
+	b_login_agent=''
+	if test "${g_os}" = 'Darwin'; then
+		b_login_agent='y'
+	else
+		b_boot_daemon='y'
+	fi
+
+	b_name=''
+	b_follow=''
+	b_lines='20'
+	while test "${#}" -ge 1; do
+		b_arg="${1:-}"
+		shift
+		if test -z "${b_arg}"; then
+			continue
+		fi
+
+		b_has_arg=''
+		b_opt_arg=''
+		case "${b_arg}" in
+			-*=)
+				b_has_arg='y'
+				b_arg=$(printf '%s' "${b_arg}" | cut -d= -f1)
+				;;
+			-*=*)
+				b_has_arg='y'
+				b_opt_arg=$(printf '%s' "${b_arg}" | cut -d= -f2-)
+				b_arg=$(printf '%s' "${b_arg}" | cut -d= -f1)
+				;;
+		esac
+
+		case "${b_arg}" in
+			help | --help)
+				fn_state_help "${b_state}"
+				return 0
+				;;
+			--agent)
+				b_boot_daemon=''
+				b_login_agent='y'
+				continue
+				;;
+			--daemon)
+				b_boot_daemon='y'
+				b_login_agent=''
+				continue
+				;;
+			-f | --follow)
+				b_follow='y'
+				continue
+				;;
+			-n | --lines)
+				if test -n "${b_has_arg}"; then
+					b_lines="${b_opt_arg}"
+				elif test "${#}" -ge 1 && test -n "${1:-}" && case "${1:-}" in -*) ;; *) true ;; esac then
+					b_lines="${1:-}"
+					shift
+				fi
+				continue
+				;;
+			--* | -*)
+				{
+					echo "error: unrecognized option '${b_arg}'"
+					fn_state_help "${b_state}"
+				} >&2
+				return 1
+				;;
+			*)
 				# the first, potentially empty argument
 				if test "${#}" -le 0; then
 					if test -z "${b_arg}"; then
@@ -1782,32 +1908,49 @@ cmd_logs() { (
 		return 1
 	fi
 
+	b_journalctl_args=''
+	b_journalctl_args="${b_journalctl_args} --unit ${b_name}"
+	if test -n "${b_follow}"; then
+		b_journalctl_args="${b_journalctl_args} -f"
+	fi
+	b_journalctl_args="${b_journalctl_args} -n ${b_lines}"
+
 	if command -v systemctl > /dev/null; then
 		if test -n "${b_boot_daemon}"; then
-			echo ${cmd_sudo} journalctl -xef --unit "${b_name}"
-			${cmd_sudo} journalctl -xef --unit "${b_name}"
+			cmd_journalctl="${cmd_sudo} journalctl ${b_journalctl_args}"
 		else
-			echo journalctl --user -xef --unit "${b_name}"
-			journalctl --user -xef --unit "${b_name}"
+			cmd_journalctl="journalctl --user ${b_journalctl_args}"
 		fi
+		#shellcheck disable=SC2086
+		echo ${cmd_journalctl}
+		${cmd_journalctl}
 		return 0
 	fi
 
+	b_tail_args=''
+	if test -n "${b_follow}"; then
+		b_tail_args="${b_tail_args} -f"
+	fi
+	b_tail_args="${b_tail_args} -n ${b_lines}"
+
 	if command -v launchctl > /dev/null; then
 		if test -n "${b_boot_daemon}"; then
-			echo ${cmd_sudo} "tail -f /var/log/${b_name}.log"
-			${cmd_sudo} tail -f "/var/log/${b_name}.log"
+			cmd_tail="${cmd_sudo} tail ${b_tail_args} /var/log/${b_name}.log"
 		else
-			echo "tail -f ~/.local/share/${b_name}/var/log/${b_name}.log"
-			tail -f ~/.local/share/"${b_name}/var/log/${b_name}.log"
+			cmd_tail="tail ${b_tail_args} ~/.local/share/${b_name}/var/log/${b_name}.log"
 		fi
+		#shellcheck disable=SC2086
+		echo ${cmd_tail}
+		${cmd_tail}
 		return 0
 	fi
 
 	if command -v rc-update > /dev/null; then
 		if test -n "${b_boot_daemon}"; then
-			echo ${cmd_sudo} "tail -f /var/log/${b_name}.log"
-			${cmd_sudo} tail -f "/var/log/${b_name}.log"
+			cmd_tail="${cmd_sudo} tail ${b_tail_args} /var/log/${b_name}.log"
+			#shellcheck disable=SC2086
+			echo ${cmd_tail}
+			${cmd_tail}
 		else
 			echo >&2 "error: '--agent' is not supported for openrc"
 			return 1
@@ -1831,6 +1974,7 @@ main() { (
 		start) cmd_start "${@:-}" ;;
 		stop) cmd_stop "${@:-}" ;;
 		restart) cmd_restart "${@:-}" ;;
+		status) cmd_status "${@:-}" ;;
 		enable) cmd_enable "${@:-}" ;;
 		disable) cmd_disable "${@:-}" ;;
 		logs) cmd_logs "${@:-}" ;;
