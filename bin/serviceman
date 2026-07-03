@@ -9,6 +9,7 @@ g_date='2026-07-03T13:17-06:00'
 g_license='MPL-2.0'
 
 g_scriptdir=$(dirname "${0}")
+g_os=$(uname -s)
 cmd_sudo=""
 if command -v sudo > /dev/null; then
 	cmd_sudo='sudo'
@@ -86,12 +87,14 @@ fn_add_help() { (
 	echo "OPTIONS"
 	echo '    --name <name>  the service name, defaults to binary, or otherwise workdir name'
 	echo '    --desc <description>  a brief description of the service'
-	echo "    --group <groupname>  defaults to '$(id -g -n)'"
+	b_id_g=$(id -g -n)
+	echo "    --group <groupname>  defaults to '${b_id_g}'"
 	echo "    --path <PATH>  defaults to current \$PATH value (set to '' to disable)"
 	echo "    --rdns <reverse-domain> (macOS only)  set launchctl rdns name"
 	echo '    --title <title>  the service name, stylized'
 	echo '    --url <link-to-docs>  link to documentation or homepage'
-	echo "    --user <username>  defaults to '$(id -u -n)'"
+	b_id_u=$(id -u -n)
+	echo "    --user <username>  defaults to '${b_id_u}'"
 	echo '    --workdir <dirpath>  where the command runs, defaults to current directory'
 	echo ""
 	echo "SUDO (--daemon mode)"
@@ -164,7 +167,7 @@ cmd_add() { (
 	b_boot_daemon=''
 	b_login_agent_set=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
@@ -350,7 +353,7 @@ cmd_add() { (
 	# if test -z "${b_path}"; then
 	#     b_path="${PATH}"
 	# fi
-	if test "$(uname -s)" = 'Darwin' && test -n "${b_boot_daemon}"; then
+	if test "${g_os}" = 'Darwin' && test -n "${b_boot_daemon}"; then
 		if test -z "${b_user}"; then
 			b_user="root"
 		fi
@@ -367,16 +370,18 @@ cmd_add() { (
 	fi
 
 	if test -n "${b_login_agent}"; then
-		if test "${b_user}" != "$(id -u -n)"; then
-			echo >&2 "error: login services for '$(id -u -n)' cannot be set to '${b_user}'"
+		b_id_u=$(id -u -n)
+		if test "${b_user}" != "${b_id_u}"; then
+			echo >&2 "error: login services for '${b_id_u}' cannot be set to '${b_user}'"
 			return 1
 		fi
-		if test "${b_group}" != "$(id -g -n)"; then
+		b_id_g=$(id -g -n)
+		if test "${b_group}" != "${b_id_g}"; then
 			if test -z "${b_force}"; then
 				echo >&2 "error: '$(id -g -n)' may not be a valid group (use --force to ignore)"
 				return 1
 			fi
-			echo >&2 "warn: '$(id -g -n)' may not be a valid group"
+			echo >&2 "warn: '${b_id_g}' may not be a valid group"
 		fi
 	fi
 
@@ -589,7 +594,7 @@ fn_print_args() { (
 	echo ""
 	echo '    serviceman add \'
 	echo "        --name '${a_name}' \\"
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		echo "        --rdns '${a_rdns}' \\"
 	fi
 	echo "        --url '${a_url}' \\"
@@ -1061,7 +1066,7 @@ cmd_list() { (
 
 	b_boot_daemon=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
@@ -1167,10 +1172,11 @@ cmd_list() { (
 			if ! grep -q -F "${b_header}" "${b_file}" 2> /dev/null; then
 				continue
 			fi
+			b_fname=$(basename "${b_file}")
 			if grep -q -i 'Generated for serviceman' "${b_file}" 2> /dev/null; then
-				echo "    $(basename "${b_file}")*"
+				echo "    ${b_fname}*"
 			else
-				echo "    $(basename "${b_file}")"
+				echo "    ${b_fname}"
 			fi
 		done
 		echo ""
@@ -1184,7 +1190,7 @@ cmd_start() { (
 
 	b_boot_daemon=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
@@ -1287,7 +1293,7 @@ cmd_stop() { (
 
 	b_boot_daemon=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
@@ -1390,7 +1396,7 @@ cmd_restart() { (
 
 	b_boot_daemon=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
@@ -1497,7 +1503,7 @@ cmd_enable() { (
 
 	b_boot_daemon=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
@@ -1606,7 +1612,7 @@ cmd_disable() { (
 
 	b_boot_daemon=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
@@ -1715,7 +1721,7 @@ cmd_logs() { (
 
 	b_boot_daemon=''
 	b_login_agent=''
-	if test "$(uname -s)" = 'Darwin'; then
+	if test "${g_os}" = 'Darwin'; then
 		b_login_agent='y'
 	else
 		b_boot_daemon='y'
