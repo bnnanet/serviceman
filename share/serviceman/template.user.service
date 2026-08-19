@@ -6,10 +6,15 @@ Description=EX_TITLE EX_DESC
 Documentation=EX_URL
 
 [Service]
+# never stop trying to restart a failed service
+StartLimitIntervalSec=0
+
+# allow the restart to delay if it's unsuccessful
+# warning: keep the max low as the backoff never resets
 Restart=always
-RestartSec=3
-RestartSteps=5
-RestartMaxDelaySec=300
+RestartSec=0.1
+RestartSteps=10
+RestartMaxDelaySec=5
 
 Environment="PATH=EX_PATH"
 WorkingDirectory=EX_WORKDIR
