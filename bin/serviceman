@@ -1143,7 +1143,7 @@ cmd_list() { (
 	fi
 	if command -v rc-update > /dev/null; then
 		b_header='!/sbin/openrc-run'
-		b_path="/etc/systemd/system"
+		b_path="/etc/init.d"
 		if test -n "${b_login_agent}"; then
 			b_path=''
 			echo >&2 "error: '--agent' has no meaning for OpenRC - it doesn't support user launchers"
